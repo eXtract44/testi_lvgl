@@ -1,0 +1,12 @@
+../Core/Src/spi_ili9341.c:46:13:ILI9341_WriteData	24	static
+../Core/Src/spi_ili9341.c:16:7:map_ili	0	static
+../Core/Src/spi_ili9341.c:19:6:ILI9341_SetBrightness	0	static
+../Core/Src/spi_ili9341.c:34:6:ILI9341_SendCommand	16	static
+../Core/Src/spi_ili9341.c:39:6:ILI9341_SendData	16	static
+../Core/Src/spi_ili9341.c:56:6:ILI9341_reset	8	static
+../Core/Src/spi_ili9341.c:62:6:ILI9341_Write_Command	16	static
+../Core/Src/spi_ili9341.c:69:6:ILI9341_Write_Data	16	static
+../Core/Src/spi_ili9341.c:75:6:ILI9341_Set_Address	24	static
+../Core/Src/spi_ili9341.c:90:6:ILI9341_SetRotation	8	static
+../Core/Src/spi_ili9341.c:116:6:ILI9341_Delay	0	static
+../Core/Src/spi_ili9341.c:124:6:ILI9341_ini	48	static
