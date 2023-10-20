@@ -1,2 +1,0 @@
-../Core/lvgl/lv_port_indev.c:193:14:keypad_read	7
-../Core/lvgl/lv_port_indev.c:51:6:lv_port_indev_init	1

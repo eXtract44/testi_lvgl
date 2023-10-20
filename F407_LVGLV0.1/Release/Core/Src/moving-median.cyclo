@@ -1,3 +1,0 @@
-../Core/Src/moving-median.c:27:6:swap	1
-../Core/Src/moving-median.c:35:6:moving_median_create	2
-../Core/Src/moving-median.c:53:6:moving_median_filter	6
