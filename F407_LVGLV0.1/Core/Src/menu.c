@@ -31,16 +31,15 @@ static lv_obj_t* create_button(lv_obj_t *parent, const char *text, lv_coord_t w,
 		lv_coord_t y_ofs, void *cb_fun);
 
 /*Global variables*/
-uint8_t current_index_measure_range = 1;
-uint8_t current_menu_index = 0;
 uint16_t buttons_delay_mS = 200;
+uint8_t current_menu_index = 0;
 bool callback_measure_range, callback_actor, callback_actor_open, callback_actor_closed = 0;
 int32_t measure_range_1_min, measure_range_1_max, measure_range_2_min, measure_range_2_max = 0;
+uint8_t current_index_measure_range = 1;
 uint32_t cnt_pt100_graphic, cnt_standby = 0;
 uint8_t set_value_0_10v_output = 0;
 
 #define NUMBERS_OF_STYLES 7
-
 enum namesOfStyles {
 	STYLE_TEXT_DEFAULT,
 	STYLE_TEXT_LARGE,
@@ -50,14 +49,14 @@ enum namesOfStyles {
 	STYLE_BAR_MCU_TEMPERATURE,
 	STYLE_BAR_BACKGROUND,
 };
+static lv_style_t style[NUMBERS_OF_STYLES];
 
 #define NUMBERS_OF_FONTS 3
-static lv_style_t style[NUMBERS_OF_STYLES];
 const lv_font_t *font[NUMBERS_OF_FONTS];
 
 lv_group_t *GROUP_BUTTONS;
 lv_chart_series_t *lv_chart_new_series_pt100;
-lv_timer_t *lv_timer_standby, *lv_timer_main, *lv_timer_sensor, *lv_timer_pt100, *lv_timer_actor, *lv_timer_settings_adc;
+lv_timer_t *lv_timer_standby, *lv_timer_main, *lv_timer_sensor, *lv_timer_pt100, *lv_timer_actor;
 
 static lv_obj_t *lv_object[NUMBERS_OF_OBJECTS];
 
@@ -75,8 +74,8 @@ void check_values() {
 }
 void standby_handler() {
 	if (read_setting_standby() >= 1) {
-		++cnt_standby;
-		if (cnt_standby > read_setting_standby() * 30 / 8) { //read_setting_standby() * 30 / 8 .....1/8 ot read_setting_standby()
+		++cnt_standby;  //1 tick == 2 sec
+		if (cnt_standby > read_setting_standby() * 30 / 8) { //1/8 time from read_setting_standby()
 			if (read_setting_brightness() < 25) {
 				ILI9341_SetBrightness(10);
 			} else {
@@ -85,10 +84,10 @@ void standby_handler() {
 		} else {
 			ILI9341_SetBrightness(read_setting_brightness());
 		}
-		if (cnt_standby > read_setting_standby() * 30 / 2) { //1/2 ot read_setting_standby()
+		if (cnt_standby > read_setting_standby() * 30 / 2) { //1/2 from read_setting_standby()
 			ILI9341_SetBrightness(1);
 		}
-		if (cnt_standby > read_setting_standby() * 30) { //1 tick 2 sec
+		if (cnt_standby > read_setting_standby() * 30) {
 			ILI9341_SetBrightness(1);
 			turn_off_24v_internal();
 			turn_off_24v_external();
@@ -103,7 +102,7 @@ static void timer_0_cb(lv_timer_t *lv_timer_standby) {
 	++cnt_battery_low;
 	if (cnt_battery_low > 360) {
 		if (read_adc_battery() < BATTERY_LOW_VOLTAGE + 1) {
-			lv_label_set_text(lv_object[VALUE_BATTERY], "!!!");
+			lv_label_set_text(lv_object[VALUE_BATTERY], "low");
 			cnt_battery_low = 0;
 		}
 	}
@@ -163,15 +162,6 @@ static void timer_4_cb(lv_timer_t *lv_timer_actor) {
 	print_value("%.1fmA", current_ina219(), lv_object[ACTOR_VALUE_OUTPUT_mA]);
 	check_values();
 }
-//static void timer_5_cb(lv_timer_t *lv_timer_settings_adc) {
-//	print_value("batt %.f bit", adc_data[ADC_CHANNEL_BATTERY], lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_BATTERY]);
-//	print_value("pt100 %.f bit", adc_data[ADC_CHANNEL_PT100], lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_PT100]);
-//	print_value("y %.f bit", adc_data[ADC_CHANNEL_Y], lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_OUTPUT_0_10V]);
-//	print_value("in1 %.f bit", adc_data[ADC_CHANNEL_IN1], lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_INPUT_1]);
-//	print_value("in2 %.f bit", adc_data[ADC_CHANNEL_IN2], lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_INPUT_2]);
-//	print_value("temp %.f bit", adc_data[ADC_CHANNEL_MCU_TEMPERATURE], lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_MCU_TEMPERATURE]);
-//}
-
 static void init_timers() {
 	lv_timer_standby = lv_timer_create(timer_0_cb, 2000, NULL); //timer for standby_handler
 	lv_timer_main = lv_timer_create(timer_1_cb, 1000, NULL); //timer for main menu
@@ -182,8 +172,6 @@ static void init_timers() {
 	lv_timer_pause(lv_timer_pt100);
 	lv_timer_actor = lv_timer_create(timer_4_cb, 1000, NULL); //timer for actor menu
 	lv_timer_pause(lv_timer_actor);
-//	lv_timer_settings_adc = lv_timer_create(timer_5_cb, 3000, NULL); //timer for setting adc read
-//	lv_timer_pause(lv_timer_settings_adc);
 }
 static void init_fonts() {
 	font[FONT_SMALL] = &lv_font_montserrat_10;
@@ -193,12 +181,8 @@ static void init_fonts() {
 static void init_style_bar() {
 	lv_style_init(&style[STYLE_BAR_BACKGROUND]);
 	lv_style_set_bg_opa(&style[STYLE_BAR_BACKGROUND], LV_OPA_COVER);
-		lv_style_set_bg_color(&style[STYLE_BAR_BACKGROUND], lv_palette_main(LV_PALETTE_GREY));
-		lv_style_set_radius(&style[STYLE_BAR_BACKGROUND], 6);
-
-
-
-
+	lv_style_set_bg_color(&style[STYLE_BAR_BACKGROUND], lv_palette_main(LV_PALETTE_GREY));
+	lv_style_set_radius(&style[STYLE_BAR_BACKGROUND], 6);
 	lv_style_init(&style[STYLE_BAR_BATTERY]);
 	lv_style_set_bg_opa(&style[STYLE_BAR_BATTERY], LV_OPA_COVER);
 	lv_style_set_bg_color(&style[STYLE_BAR_BATTERY], lv_palette_main(LV_PALETTE_GREEN));
@@ -256,14 +240,6 @@ static void add_group_buttons(lv_obj_t **buttons, const uint16_t start_from_obje
 		lv_group_add_obj(GROUP_BUTTONS, buttons[i]);
 	}
 }
-//static void del_group_buttons(lv_obj_t **buttons, const uint16_t start_from_object, const uint8_t length) {
-//	if (length == 0) {
-//		return;
-//	}
-//	for (uint8_t i = start_from_object; i < start_from_object + length; i++) {
-//		lv_group_remove_obj(buttons[i]);
-//	}
-//}
 static void create_text(const char *text, lv_obj_t *bg, uint8_t theme, lv_align_t align, lv_coord_t x_ofs, lv_coord_t y_ofs) {
 	lv_obj_t *cont = lv_label_create(bg);
 	lv_obj_remove_style_all(cont);
@@ -388,7 +364,6 @@ void create_battery_bar() {
 	lv_obj_add_style(lv_object[BAR_BATTERY], &style[STYLE_BAR_BATTERY], LV_PART_INDICATOR);
 	lv_object[VALUE_BATTERY] = lv_label_create(lv_object[BAR_BATTERY]);
 	lv_obj_center(lv_object[VALUE_BATTERY]);
-	//lv_label_set_text(lv_object[VALUE_BATTERY], "100");
 }
 void create_temperature_bar() {
 	lv_object[BAR_TEMPERATURE] = create_bar(lv_object[MAIN_SCREEN], 50, 20, LV_ALIGN_TOP_LEFT, 10, 20, 0, 50);
@@ -396,7 +371,6 @@ void create_temperature_bar() {
 	lv_obj_add_style(lv_object[BAR_TEMPERATURE], &style[STYLE_BAR_MCU_TEMPERATURE], LV_PART_INDICATOR);
 	lv_object[VALUE_TEMPERATURE] = lv_label_create(lv_object[BAR_TEMPERATURE]);
 	lv_obj_center(lv_object[VALUE_TEMPERATURE]);
-	//lv_label_set_text(lv_object[VALUE_TEMPERATURE], "25");
 }
 
 static void event_handler_btn_1_main(lv_event_t *e) {
@@ -675,22 +649,6 @@ static void event_handler_btn_1_settings(lv_event_t *e) {
 		draw_menu_main();
 	}
 }
-//static void event_handler_btn_2_settings(lv_event_t *e) {
-//	lv_event_code_t code = lv_event_get_code(e);
-//	if (code == button_selection_method_1) {
-//		start_vibration(read_setting_vibration());
-//		start_buzzer(50, read_setting_volume());
-//		draw_menu_settings_adc(0);
-//	}
-//}
-//static void event_handler_btn_1_settings_adc(lv_event_t *e) {
-//	lv_event_code_t code = lv_event_get_code(e);
-//	if (code == button_selection_method_1) {
-//		start_vibration(read_setting_vibration());
-//		start_buzzer(50, read_setting_volume());
-//		draw_menu_settings_adc(1);
-//	}
-//}
 static void event_handler_btn_1_info(lv_event_t *e) {
 	lv_event_code_t code = lv_event_get_code(e);
 	if (code == button_selection_method_1) {
@@ -838,7 +796,6 @@ static void create_menu_actor() {
 }
 static void create_menu_settings() {
 	para_t btn_1 = { .width = 80, .height = 30, .align = LV_ALIGN_BOTTOM_MID, .x_ofs = 0, .y_ofs = -10 };
-//	para_t btn_2 = { .width = 80, .height = 30, .align = LV_ALIGN_BOTTOM_MID, .x_ofs = 110, .y_ofs = -10 };
 	para_t text_string_1 = { .align = LV_ALIGN_TOP_LEFT, .x_ofs = 10, .y_ofs = 10 };
 	para_t slider_1 = { .align = LV_ALIGN_TOP_LEFT, .x_ofs = 140, .y_ofs = 15 };
 	para_t value_1 = { .align = LV_ALIGN_TOP_LEFT, .x_ofs = 240, .y_ofs = 10 };
@@ -857,8 +814,6 @@ static void create_menu_settings() {
 	MY_DISP_VER_RES);
 	lv_object[SETTINGS_SCREEN_BUTTON_1] = create_button(lv_object[SETTINGS_SCREEN], "HOME", btn_1.width, btn_1.height, btn_1.align,
 			btn_1.x_ofs, btn_1.y_ofs, event_handler_btn_1_settings);
-//	lv_object[SETTINGS_SCREEN_BUTTON_2] = create_button(lv_object[SETTINGS_SCREEN], "ADC", btn_1.width, btn_1.height, btn_2.align,
-//			btn_2.x_ofs, btn_2.y_ofs, event_handler_btn_2_settings);
 	create_text("brightness", lv_object[SETTINGS_SCREEN], THEME_TEXT_MEDIUM, text_string_1.align, text_string_1.x_ofs, text_string_1.y_ofs);
 	lv_object[SETTINGS_SCREEN_SLIDER_BRIGHTNESS] = create_slider(lv_object[SETTINGS_SCREEN], 80, 10, 0, 100, slider_1.align, slider_1.x_ofs,
 			slider_1.y_ofs, event_handler_slider_1_settings);
@@ -943,12 +898,8 @@ void draw_pt100_menu(bool status) {
 		lv_object[SENSOR_PT100_BUTTON_1] = create_button(lv_scr_act(), "ok", btn_1.width, btn_1.height, btn_1.align, btn_1.x_ofs,
 				btn_1.y_ofs, event_handler_chart_pt100_btn_1_sensor);
 		lv_object[SENSOR_PT100_VALUE] = create_label(lv_scr_act(), "LOADING", value_pt100.align, value_pt100.x_ofs, value_pt100.y_ofs);
-
 		lv_group_remove_all_objs(GROUP_BUTTONS);
-		//del_group_buttons(lv_object, SENSOR_SCREEN_BUTTON_1,
-		//	NUMBERS_OF_BUTTONS_SENSOR);
 		lv_group_add_obj(GROUP_BUTTONS, lv_object[SENSOR_PT100_BUTTON_1]);
-
 		lv_timer_pause(lv_timer_sensor);
 		lv_timer_resume(lv_timer_pt100);
 	}
@@ -1033,52 +984,13 @@ void draw_menu_settings() {
 	lv_scr_load(lv_object[SETTINGS_SCREEN]);
 	current_menu_index = CURRENT_MENU_MAIN_SETTINGS;
 }
-//void draw_menu_settings_adc(bool status) {
-//	para_t bg = { .width = 295, .height = 205, .align = LV_ALIGN_CENTER, .x_ofs = 0, .y_ofs = -10 };
-//	para_t btn_1 = { .width = 80, .height = 30, .align = LV_ALIGN_BOTTOM_MID, .x_ofs = 0, .y_ofs = -10 };
-//	para_t value_1 = { .align = LV_ALIGN_TOP_MID, .x_ofs = 0, .y_ofs = 0 };
-//	para_t value_2 = { .align = LV_ALIGN_TOP_MID, .x_ofs = 0, .y_ofs = 20 };
-//	para_t value_3 = { .align = LV_ALIGN_TOP_MID, .x_ofs = 0, .y_ofs = 40 };
-//	para_t value_4 = { .align = LV_ALIGN_TOP_MID, .x_ofs = 0, .y_ofs = 60 };
-//	para_t value_5 = { .align = LV_ALIGN_TOP_MID, .x_ofs = 0, .y_ofs = 80 };
-//	para_t value_6 = { .align = LV_ALIGN_TOP_MID, .x_ofs = 0, .y_ofs = 100 };
-//	if (status == 1) {
-//		lv_obj_del_async(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND]);
-//		lv_obj_del_async(lv_object[SETTINGS_SCREEN_ADC_BUTTON_1]);
-//		add_group_buttons(lv_object, SETTINGS_SCREEN_BUTTON_1,
-//		NUMBERS_OF_OBJECTS_SETTINGS);
-//		lv_timer_pause(lv_timer_settings_adc);
-//	} else {
-//		lv_object[SETTINGS_SCREEN_ADC_BACKGROUND] = create_background(lv_scr_act(), bg.width, bg.height, bg.align, bg.x_ofs, bg.y_ofs);
-//		lv_object[SETTINGS_SCREEN_ADC_BUTTON_1] = create_button(lv_scr_act(), "<<<", btn_1.width, btn_1.height, btn_1.align, btn_1.x_ofs,
-//				btn_1.y_ofs, event_handler_btn_1_settings_adc);
-//		lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_BATTERY] = create_label(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND], "0", value_1.align,
-//				value_1.x_ofs, value_1.y_ofs);
-//		lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_PT100] = create_label(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND], "0", value_2.align,
-//				value_2.x_ofs, value_2.y_ofs);
-//		lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_OUTPUT_0_10V] = create_label(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND], "0", value_3.align,
-//				value_3.x_ofs, value_3.y_ofs);
-//		lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_INPUT_1] = create_label(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND], "0", value_4.align,
-//				value_4.x_ofs, value_4.y_ofs);
-//		lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_INPUT_2] = create_label(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND], "0", value_5.align,
-//				value_5.x_ofs, value_5.y_ofs);
-//		lv_object[SETTINGS_SCREEN_ADC_VALUE_RAW_MCU_TEMPERATURE] = create_label(lv_object[SETTINGS_SCREEN_ADC_BACKGROUND], "0",
-//				value_6.align, value_6.x_ofs, value_6.y_ofs);
-//		del_group_buttons(lv_object, SETTINGS_SCREEN_BUTTON_1,
-//		NUMBERS_OF_OBJECTS_SETTINGS);
-//		lv_group_add_obj(GROUP_BUTTONS, lv_object[SETTINGS_SCREEN_ADC_BUTTON_1]);
-//		lv_timer_resume(lv_timer_settings_adc);
-//	}
-//}
 void draw_menu_info() {
 	lv_group_remove_all_objs(GROUP_BUTTONS);
-	//lv_timer_pause(lv_timer_main);
 	lv_group_add_obj(GROUP_BUTTONS, lv_object[INFO_SCREEN_BUTTON_1]);
 	current_menu_index = CURRENT_MENU_MAIN_INFO;
 	lv_scr_load(lv_object[INFO_SCREEN]);
 }
 void init_lv_objects() {
-
 	init_fonts();
 	init_styles();
 	init_timers();
