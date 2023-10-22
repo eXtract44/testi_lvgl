@@ -39,26 +39,16 @@ uint8_t current_index_measure_range = 1;
 uint32_t cnt_pt100_graphic, cnt_standby = 0;
 uint8_t set_value_0_10v_output = 0;
 
-#define NUMBERS_OF_STYLES 7
-enum namesOfStyles {
-	STYLE_TEXT_DEFAULT,
-	STYLE_TEXT_LARGE,
-	STYLE_TEXT_MEDIUM,
-	STYLE_TEXT_SMALL,
-	STYLE_BAR_BATTERY,
-	STYLE_BAR_MCU_TEMPERATURE,
-	STYLE_BAR_BACKGROUND,
-};
-static lv_style_t style[NUMBERS_OF_STYLES];
 
-#define NUMBERS_OF_FONTS 3
+static lv_style_t style[NUMBERS_OF_STYLES];
 const lv_font_t *font[NUMBERS_OF_FONTS];
+static lv_obj_t *lv_object[NUMBERS_OF_OBJECTS];
 
 lv_group_t *GROUP_BUTTONS;
 lv_chart_series_t *lv_chart_new_series_pt100;
 lv_timer_t *lv_timer_standby, *lv_timer_main, *lv_timer_sensor, *lv_timer_pt100, *lv_timer_actor;
 
-static lv_obj_t *lv_object[NUMBERS_OF_OBJECTS];
+
 
 void print_value(const char *flags, float value, lv_obj_t *value_lv) {
 	lv_label_set_text_fmt(value_lv, flags, value);
