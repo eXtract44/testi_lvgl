@@ -1,5 +1,8 @@
 # testi_lvgl
 
+![FINISH_TOP](https://github.com/eXtract44/testi_lvgl/assets/71541578/41d05a7d-8a4d-483a-ae93-512bc4ecf60a)
+
+
 Project TESTI: Sensors & Actuators with 0-10VDC Signals Mobile Tester
 
 Description:
@@ -24,7 +27,5 @@ I2C with INA219 for Power Measurement: Enables precise measurement of power and 
 PWM Control Implementation: Facilitates control over display brightness, motor speeds, and sound signaling.
 Applications:
 Project TESTI finds application across diverse fields, including measurements, automation, control systems, and more, owing to its flexibility and multifunctionality.
-![FINISH_TOP](https://github.com/eXtract44/testi_lvgl/assets/71541578/06bcf0d2-4fee-42d6-9843-d4062419d92a)
-
 
  
