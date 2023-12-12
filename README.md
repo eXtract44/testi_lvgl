@@ -11,11 +11,13 @@ also testing PT100 Temperature Sensors.
 
 Features:
 
+-Powerful MCU STM32F446VET6 with 180 Mhz
+
 -Display: 2.8" ILI9341 Display:
 
  ** SPI DMA 
  
- ** brightness control PWM/TIM
+ ** brightness control (PWM/TIM)
  
  ** LVGL V8.0
  
